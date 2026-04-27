@@ -13,7 +13,7 @@ class DeepSeekAnalyst:
     @property
     def client(self):
         if self._client is None:
-            self._client = Groq(api_key=Config.GROQ_API_KEY)
+            self._client = Groq(api_key=Config.GROQ_API_KEY_STOCK)
         return self._client
     
     def generate_investment_recommendation(self, 
