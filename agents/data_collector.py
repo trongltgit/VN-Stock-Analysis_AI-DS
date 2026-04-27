@@ -1,7 +1,6 @@
 import yfinance as yf
 import pandas as pd
 import requests
-from duckduckgo_search import DDGS
 from datetime import datetime, timedelta
 import json
 
@@ -9,14 +8,23 @@ class DataCollector:
     """Tầng thu thập dữ liệu: Giá chứng khoán, quỹ, tin tức"""
     
     def __init__(self):
-        self.ddgs = DDGS()
+        self.ddgs = None  # Khởi tạo lazy để tránh lỗi boot
+    
+    def _get_ddgs(self):
+        """Lazy init DDGS để tránh lỗi khởi động"""
+        if self.ddgs is None:
+            try:
+                from duckduckgo_search import DDGS
+                self.ddgs = DDGS()
+            except Exception as e:
+                print(f"DDGS init warning: {e}")
+                self.ddgs = False  # Đánh dấu failed
+        return self.ddgs
     
     def get_stock_data(self, symbol: str, period="2y", interval="1d"):
         """Lấy dữ liệu giá từ Yahoo Finance"""
         try:
-            # Xử lý mã quỹ VN (thêm .VN nếu cần)
             if symbol.isdigit() or symbol.upper() in ['MGF', 'VCBF', 'VESAF']:
-                # Mã quỹ hoặc chứng khoán VN
                 ticker = yf.Ticker(symbol.upper())
             else:
                 ticker = yf.Ticker(symbol.upper())
@@ -34,22 +42,26 @@ class DataCollector:
             return {'success': False, 'error': str(e), 'symbol': symbol}
     
     def get_fund_data(self, fund_code: str):
-        """Lấy dữ liệu quỹ mở (VCBS, VCBF, SSI...)"""
-        # Mapping mã quỹ phổ biến VN
+        """Lấy dữ liệu quỹ mở"""
         fund_mapping = {
-            'MGF': 'MGF',      # VCBF
-            'VESAF': 'VESAF',  # Vietcombank
-            'SSISCA': '0P0000Z8I8.F',  # SSI
+            'MGF': 'MGF',
+            'VESAF': 'VESAF',
+            'SSISCA': '0P0000Z8I8.F',
             'E1VFVN30': 'E1VFVN30',
         }
-        
         ticker_symbol = fund_mapping.get(fund_code.upper(), fund_code.upper())
         return self.get_stock_data(ticker_symbol)
     
     def search_market_news(self, query: str, max_results=10):
         """Tìm tin tức thị trường qua DuckDuckGo"""
+        ddgs = self._get_ddgs()
+        if ddgs is False:
+            # Fallback: trả về empty list nếu DDGS lỗi
+            print(f"DDGS not available, skipping news search for: {query}")
+            return []
+        
         try:
-            results = self.ddgs.text(
+            results = ddgs.text(
                 keywords=f"{query} stock market news analysis",
                 region='vn-vi',
                 safesearch='off',
@@ -57,10 +69,11 @@ class DataCollector:
             )
             return list(results)
         except Exception as e:
-            return [{'error': str(e)}]
+            print(f"News search error: {e}")
+            return []
     
     def get_fundamental_data(self, symbol: str):
-        """Thu thập dữ liệu cơ bản: P/E, EPS, Market Cap..."""
+        """Thu thập dữ liệu cơ bản"""
         try:
             ticker = yf.Ticker(symbol.upper())
             info = ticker.info
@@ -99,8 +112,7 @@ class DataCollector:
             return {'error': str(e), 'symbol': symbol}
     
     def get_forex_data(self, pair: str, period="1y", interval="1d"):
-        """Lấy dữ liệu tỷ giá: USDVND=X, USDJPY=X..."""
-        # Chuyển đổi pair sang format Yahoo Finance
+        """Lấy dữ liệu tỷ giá"""
         pair_map = {
             'USD.VND': 'USDVND=X',
             'USD.JPY': 'USDJPY=X',
