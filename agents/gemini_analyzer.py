@@ -6,8 +6,14 @@ class GeminiAnalyzer:
     """Tầng phân tích cơ bản: Đọc hiểu BCTC, phân tích sức khỏe tài chính"""
     
     def __init__(self):
-        genai.configure(api_key=Config.GEMINI_API_KEY)
-        self.model = genai.GenerativeModel(Config.GEMINI_MODEL)
+        self._model = None
+    
+    @property
+    def model(self):
+        if self._model is None:
+            genai.configure(api_key=Config.GEMINI_API_KEY)
+            self._model = genai.GenerativeModel(Config.GEMINI_MODEL)
+        return self._model
     
     def analyze_fundamentals(self, fundamental_data: dict):
         """Phân tích chỉ số cơ bản và tạo báo cáo"""
@@ -40,9 +46,8 @@ class GeminiAnalyzer:
         
         try:
             response = self.model.generate_content(prompt)
-            # Parse JSON từ response
             text = response.text
-            # Tìm JSON trong response
+            
             if '```json' in text:
                 json_str = text.split('```json')[1].split('```')[0]
             elif '```' in text:
@@ -55,7 +60,6 @@ class GeminiAnalyzer:
         except Exception as e:
             return {
                 'error': str(e),
-                'raw_response': response.text if 'response' in locals() else 'N/A',
                 'fallback_analysis': self._fallback_analysis(fundamental_data)
             }
     
@@ -70,7 +74,7 @@ class GeminiAnalyzer:
         5. Các chỉ số quan trọng: EPS, BVPS, DPS
         
         Báo cáo:
-        {pdf_content[:15000]}  # Giới hạn độ dài
+        {pdf_content[:15000]}
         
         Trả về JSON với cấu trúc tương tự analyze_fundamentals.
         """
