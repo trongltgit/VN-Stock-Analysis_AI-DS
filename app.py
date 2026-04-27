@@ -204,7 +204,6 @@ def create_alert():
     if not all([symbol, target, chat_id]):
         return jsonify({'error': 'Thiếu thông tin'}), 400
     
-    # Simple callback - chỉ log, không dùng asyncio
     def alert_callback(**kwargs):
         print(f"ALERT TRIGGERED: {kwargs['symbol']} at {kwargs['current_price']}")
     
@@ -352,16 +351,16 @@ def compare_strategies():
         'best_strategy': comparison[0]['strategy'] if comparison else None
     })
 
-# ========== TELEGRAM BOT (OPTIONAL - chỉ khởi động nếu có token) ==========
+# ========== TELEGRAM BOT (OPTIONAL) ==========
+# Chỉ khởi động nếu có TELEGRAM_BOT_TOKEN trong env
 telegram_bot = None
-bot_thread = None
 
 def init_telegram_bot():
-    """Khởi tạo Telegram bot trong process riêng"""
-    global telegram_bot, bot_thread
+    """Khởi tạo Telegram bot - optional"""
+    global telegram_bot
     token = os.getenv('TELEGRAM_BOT_TOKEN')
     if not token:
-        print("ℹ️ Không có TELEGRAM_BOT_TOKEN, bỏ qua Telegram bot")
+        print("ℹ️ Không có TELEGRAM_BOT_TOKEN - Bỏ qua Telegram Bot")
         return
     
     try:
@@ -373,13 +372,14 @@ def init_telegram_bot():
                 return resp.get_json()
         
         telegram_bot = StockTelegramBot(token=token, analyzer_callback=analyze_callback)
+        # Chạy trong thread riêng
         bot_thread = threading.Thread(target=telegram_bot.run, daemon=True)
         bot_thread.start()
-        print("✅ Telegram bot đã khởi động")
+        print("✅ Telegram Bot đã khởi động")
     except Exception as e:
-        print(f"⚠️ Lỗi khởi động Telegram bot: {e}")
+        print(f"⚠️ Lỗi khởi động Telegram Bot: {e}")
 
-# Chỉ khởi động bot khi không phải gunicorn master process
+# Khởi động bot sau khi app ready (chỉ khi không phải reloader process)
 if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not os.environ.get('GUNICORN_WORKER'):
     init_telegram_bot()
 
