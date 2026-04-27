@@ -11,7 +11,7 @@ class GeminiAnalyzer:
     @property
     def model(self):
         if self._model is None:
-            genai.configure(api_key=Config.GEMINI_API_KEY)
+            genai.configure(api_key=Config.GEMINI_API_KEY_STOCK)
             self._model = genai.GenerativeModel(Config.GEMINI_MODEL)
         return self._model
     
