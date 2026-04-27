@@ -22,7 +22,7 @@ tech_analyzer = TechnicalAnalyzer()
 gemini = GeminiAnalyzer()
 deepseek = DeepSeekAnalyst()
 
-# Cleanup temp files
+# Cleanup temp files periodically
 def cleanup_temp_files():
     while True:
         time.sleep(3600)
@@ -65,18 +65,14 @@ def analyze_stock():
         df = stock_data['data']
         current_price = df['Close'].iloc[-1]
         
-        # Phân tích kỹ thuật
         chart_path, df_with_indicators = tech_analyzer.create_chart(df, symbol)
         tech_signals = tech_analyzer.generate_signals(df_with_indicators)
         
-        # Phân tích cơ bản
         fundamentals = collector.get_fundamental_data(symbol)
         gemini_analysis = gemini.analyze_fundamentals(fundamentals)
         
-        # Tin tức
         news = collector.search_market_news(f"{symbol} stock", max_results=5)
         
-        # DeepSeek khuyến nghị
         recommendation = deepseek.generate_investment_recommendation(
             symbol=symbol,
             fundamental_analysis=gemini_analysis,
@@ -200,11 +196,9 @@ def serve_chart(filename):
 @app.route('/api/market-overview', methods=['GET'])
 def market_overview():
     """Tổng quan thị trường VN"""
-    # Dùng nguồn VN thay vì Yahoo
     result = collector.get_market_overview_vn()
     
     if not result:
-        # Fallback
         indices = ['^VNINDEX', '^HNXINDEX', '^UPCOMINDEX']
         for idx in indices:
             try:
@@ -230,6 +224,7 @@ alert_system.start()
 
 @app.route('/api/alerts', methods=['POST'])
 def create_alert():
+    """Tạo cảnh báo giá mới"""
     data = request.get_json()
     symbol = data.get('symbol', '').upper()
     target = data.get('target_price', 0)
@@ -258,6 +253,7 @@ def create_alert():
 
 @app.route('/api/alerts/<chat_id>', methods=['GET'])
 def get_alerts(chat_id):
+    """Lấy danh sách cảnh báo của user"""
     alerts = alert_system.get_user_alerts(int(chat_id))
     return jsonify({
         'alerts': [{
@@ -272,8 +268,14 @@ def get_alerts(chat_id):
 
 @app.route('/api/alerts/<alert_id>', methods=['DELETE'])
 def delete_alert(alert_id):
+    """Xóa cảnh báo"""
     alert_system.remove_alert(alert_id)
     return jsonify({'success': True})
+
+@app.route('/api/alerts/stats', methods=['GET'])
+def alert_stats():
+    """Thống kê hệ thống cảnh báo"""
+    return jsonify(alert_system.get_stats())
 
 # ========== BACKTEST ==========
 from agents.backtest_engine import BacktestEngine, sma_crossover_strategy, rsi_strategy, macd_strategy, bollinger_bounce_strategy
@@ -281,6 +283,7 @@ import pandas as pd
 
 @app.route('/api/backtest', methods=['POST'])
 def run_backtest():
+    """Chạy backtest chiến lược"""
     data = request.get_json()
     symbol = data.get('symbol', '').upper()
     strategy_name = data.get('strategy', 'sma_crossover')
@@ -338,6 +341,7 @@ def run_backtest():
 
 @app.route('/api/backtest/compare', methods=['POST'])
 def compare_strategies():
+    """So sánh nhiều chiến lược cùng lúc"""
     data = request.get_json()
     symbol = data.get('symbol', '').upper()
     
