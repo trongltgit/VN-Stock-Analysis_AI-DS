@@ -20,6 +20,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .vcbs-iframe { width: 100%; height: 600px; border: 0; border-radius: 12px; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -46,6 +47,26 @@
         </div>
     </header>
 
+    <!-- Navigation Tabs -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4">
+            <div class="flex space-x-1 overflow-x-auto">
+                <button onclick="switchMainTab('analysis')" id="tab-analysis" class="px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 whitespace-nowrap">
+                    <i class="fas fa-chart-bar mr-2"></i>Phân tích AI
+                </button>
+                <button onclick="switchMainTab('vcbs')" id="tab-vcbs" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                    <i class="fas fa-building mr-2"></i>VCBS Priceboard
+                </button>
+                <button onclick="switchMainTab('backtest')" id="tab-backtest" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                    <i class="fas fa-history mr-2"></i>Backtest
+                </button>
+                <button onclick="switchMainTab('alerts')" id="tab-alerts" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                    <i class="fas fa-bell mr-2"></i>Cảnh báo
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Market Overview Bar -->
     <div class="bg-white shadow-sm border-b">
         <div class="container mx-auto px-4 py-3 flex space-x-6 overflow-x-auto" id="marketBar">
@@ -57,235 +78,273 @@
     </div>
 
     <div class="container mx-auto px-4 py-8">
-        <!-- Input Section -->
-        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <div class="text-center mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">Nhập mã chứng khoán hoặc cặp tiền tệ</h2>
-                <p class="text-gray-600">Hệ thống sẽ phân tích tự động bằng AI đa tầng</p>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-6 mb-6">
-                <!-- Stock Input -->
-                <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-building mr-2 text-blue-600"></i>Chứng khoán / Quỹ mở
-                    </label>
-                    <div class="flex">
-                        <input type="text" id="stockInput" placeholder="VD: VCB, MGF, SSI, AAPL..." 
-                               class="flex-1 border-2 border-gray-200 rounded-l-lg px-4 py-3 focus:outline-none focus:border-blue-500 uppercase">
-                        <button onclick="analyzeStock()" 
-                                class="bg-blue-600 text-white px-6 py-3 rounded-r-lg hover:bg-blue-700 transition">
-                            <i class="fas fa-search mr-2"></i>Phân tích
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Hỗ trợ: VCBS, VCBF, SSI, cổ phiếu VN, US</p>
+        
+        <!-- ===== TAB: PHÂN TÍCH AI ===== -->
+        <div id="main-analysis" class="fade-in">
+            <!-- Input Section -->
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Nhập mã chứng khoán hoặc cặp tiền tệ</h2>
+                    <p class="text-gray-600">Hệ thống sẽ phân tích tự động bằng AI đa tầng</p>
                 </div>
 
-                <!-- Forex Input -->
-                <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-exchange-alt mr-2 text-green-600"></i>Cặp tiền tệ
-                    </label>
-                    <div class="flex">
-                        <input type="text" id="forexInput" placeholder="VD: USD.VND, EUR.USD..." 
-                               class="flex-1 border-2 border-gray-200 rounded-l-lg px-4 py-3 focus:outline-none focus:border-green-500 uppercase">
-                        <button onclick="analyzeForex()" 
-                                class="bg-green-600 text-white px-6 py-3 rounded-r-lg hover:bg-green-700 transition">
-                            <i class="fas fa-search mr-2"></i>Phân tích
-                        </button>
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <!-- Stock Input -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-building mr-2 text-blue-600"></i>Chứng khoán / Quỹ mở
+                        </label>
+                        <div class="flex">
+                            <input type="text" id="stockInput" placeholder="VD: VCB, MGF, SSI, AAPL..." 
+                                   class="flex-1 border-2 border-gray-200 rounded-l-lg px-4 py-3 focus:outline-none focus:border-blue-500 uppercase">
+                            <button onclick="analyzeStock()" 
+                                    class="bg-blue-600 text-white px-6 py-3 rounded-r-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-search mr-2"></i>Phân tích
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Hỗ trợ: VCBS, VCBF, SSI, cổ phiếu VN, US</p>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Hỗ trợ: USD.VND, EUR.USD, USD.JPY...</p>
+
+                    <!-- Forex Input -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-exchange-alt mr-2 text-green-600"></i>Cặp tiền tệ
+                        </label>
+                        <div class="flex">
+                            <input type="text" id="forexInput" placeholder="VD: USD.VND, EUR.USD..." 
+                                   class="flex-1 border-2 border-gray-200 rounded-l-lg px-4 py-3 focus:outline-none focus:border-green-500 uppercase">
+                            <button onclick="analyzeForex()" 
+                                    class="bg-green-600 text-white px-6 py-3 rounded-r-lg hover:bg-green-700 transition">
+                                <i class="fas fa-search mr-2"></i>Phân tích
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Hỗ trợ: USD.VND, EUR.USD, USD.JPY...</p>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Quick Links -->
-            <div class="flex flex-wrap gap-2 justify-center">
-                <span class="text-sm text-gray-500">Tra cứu nhanh:</span>
-                <button onclick="quickAnalyze('VCB')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-blue-100 transition">VCB</button>
-                <button onclick="quickAnalyze('MGF')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-blue-100 transition">MGF</button>
-                <button onclick="quickAnalyze('SSI')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-blue-100 transition">SSI</button>
-                <button onclick="quickAnalyze('FPT')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-blue-100 transition">FPT</button>
-                <button onclick="quickForex('USD.VND')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-green-100 transition">USD.VND</button>
-            </div>
-        </div>
-
-        <!-- Loading -->
-        <div id="loadingSection" class="hidden text-center py-12">
-            <div class="loading-spinner mx-auto mb-4"></div>
-            <p class="text-gray-600">Đang phân tích đa tầng...</p>
-            <div class="mt-4 space-y-2 text-sm text-gray-500">
-                <p id="step1"><i class="fas fa-check-circle text-green-500 mr-2"></i>Thu thập dữ liệu thị trường</p>
-                <p id="step2"><i class="fas fa-circle text-gray-300 mr-2"></i>Phân tích kỹ thuật & Biểu đồ</p>
-                <p id="step3"><i class="fas fa-circle text-gray-300 mr-2"></i>Gemini 1.5 Pro - Phân tích BCTC</p>
-                <p id="step4"><i class="fas fa-circle text-gray-300 mr-2"></i>DeepSeek-R1 - Định giá & Khuyến nghị</p>
-            </div>
-        </div>
-
-        <!-- Results Section -->
-        <div id="resultsSection" class="hidden fade-in space-y-6">
-            <!-- Recommendation Banner -->
-            <div id="recBanner" class="rounded-2xl p-6 text-white shadow-lg">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-3xl font-bold mb-2" id="recSymbol">MÃ CK</h3>
-                        <p class="text-lg opacity-90" id="recPrice">Giá hiện tại: --</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-5xl font-bold mb-1" id="recAction">--</div>
-                        <p class="text-sm opacity-80" id="recConfidence">Độ tin cậy: --</p>
-                    </div>
+                <!-- Quick Links -->
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <span class="text-sm text-gray-500">Tra cứu nhanh:</span>
+                    <button onclick="quickAnalyze('VCB')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-blue-100 transition">VCB</button>
+                    <button onclick="quickAnalyze('MGF')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-blue-100 transition">MGF</button>
+                    <button onclick="quickAnalyze('SSI')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-blue-100 transition">SSI</button>
+                    <button onclick="quickAnalyze('FPT')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-blue-100 transition">FPT</button>
+                    <button onclick="quickForex('USD.VND')" class="px-3 py-1 bg-gray-100 rounded-full text-sm hover:bg-green-100 transition">USD.VND</button>
                 </div>
             </div>
 
-            <!-- Main Grid -->
-            <div class="grid lg:grid-cols-3 gap-6">
-                <!-- Chart -->
-                <div class="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6">
-                    <h3 class="text-xl font-bold mb-4 flex items-center">
-                        <i class="fas fa-chart-area mr-2 text-blue-600"></i>Biểu đồ kỹ thuật
-                    </h3>
-                    <iframe id="chartFrame" class="w-full h-96 border-0 rounded-lg"></iframe>
+            <!-- Loading -->
+            <div id="loadingSection" class="hidden text-center py-12">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-gray-600">Đang phân tích đa tầng...</p>
+                <div class="mt-4 space-y-2 text-sm text-gray-500">
+                    <p id="step1"><i class="fas fa-check-circle text-green-500 mr-2"></i>Thu thập dữ liệu thị trường</p>
+                    <p id="step2"><i class="fas fa-circle text-gray-300 mr-2"></i>Phân tích kỹ thuật & Biểu đồ</p>
+                    <p id="step3"><i class="fas fa-circle text-gray-300 mr-2"></i>Gemini 1.5 Pro - Phân tích BCTC</p>
+                    <p id="step4"><i class="fas fa-circle text-gray-300 mr-2"></i>DeepSeek-R1 - Định giá & Khuyến nghị</p>
                 </div>
+            </div>
 
-                <!-- Technical Signals -->
-                <div class="bg-white rounded-2xl shadow-lg p-6">
-                    <h3 class="text-xl font-bold mb-4 flex items-center">
-                        <i class="fas fa-signal mr-2 text-purple-600"></i>Tín hiệu kỹ thuật
-                    </h3>
-                    <div id="techSignals" class="space-y-3">
-                        <!-- Dynamic content -->
-                    </div>
-                    <div class="mt-4 pt-4 border-t">
-                        <div class="flex justify-between items-center">
-                            <span class="font-semibold">Điểm tổng hợp:</span>
-                            <span id="techScore" class="text-2xl font-bold text-blue-600">--</span>
+            <!-- Results Section -->
+            <div id="resultsSection" class="hidden fade-in space-y-6">
+                <!-- Recommendation Banner -->
+                <div id="recBanner" class="rounded-2xl p-6 text-white shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-3xl font-bold mb-2" id="recSymbol">MÃ CK</h3>
+                            <p class="text-lg opacity-90" id="recPrice">Giá hiện tại: --</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-5xl font-bold mb-1" id="recAction">--</div>
+                            <p class="text-sm opacity-80" id="recConfidence">Độ tin cậy: --</p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Fundamental Analysis -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold mb-4 flex items-center">
-                    <i class="fas fa-file-invoice-dollar mr-2 text-green-600"></i>Phân tích cơ bản (Gemini 1.5 Pro)
-                </h3>
-                <div id="fundamentalAnalysis" class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- Dynamic cards -->
+                <!-- Main Grid -->
+                <div class="grid lg:grid-cols-3 gap-6">
+                    <!-- Chart -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold mb-4 flex items-center">
+                            <i class="fas fa-chart-area mr-2 text-blue-600"></i>Biểu đồ kỹ thuật
+                        </h3>
+                        <iframe id="chartFrame" class="w-full h-96 border-0 rounded-lg"></iframe>
+                    </div>
+
+                    <!-- Technical Signals -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold mb-4 flex items-center">
+                            <i class="fas fa-signal mr-2 text-purple-600"></i>Tín hiệu kỹ thuật
+                        </h3>
+                        <div id="techSignals" class="space-y-3"></div>
+                        <div class="mt-4 pt-4 border-t">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Điểm tổng hợp:</span>
+                                <span id="techScore" class="text-2xl font-bold text-blue-600">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fundamental Analysis -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-file-invoice-dollar mr-2 text-green-600"></i>Phân tích cơ bản (Gemini 1.5 Pro)
+                    </h3>
+                    <div id="fundamentalAnalysis" class="grid md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+                </div>
+
+                <!-- DeepSeek Recommendation -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-brain mr-2 text-red-600"></i>Khuyến nghị đầu tư (DeepSeek-R1)
+                    </h3>
+                    <div id="deepseekRec" class="prose max-w-none"></div>
+                </div>
+
+                <!-- News -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-newspaper mr-2 text-yellow-600"></i>Tin tức thị trường
+                    </h3>
+                    <div id="newsSection" class="space-y-3"></div>
                 </div>
             </div>
+        </div>
 
+        <!-- ===== TAB: VCBS PRICEBOARD ===== -->
+        <div id="main-vcbs" class="hidden fade-in">
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-building mr-3 text-purple-600"></i>VCBS Priceboard
+                </h2>
+                <p class="text-gray-600 mb-4">Xem bảng giá trực tiếp từ VCBS</p>
+                
+                <div class="mb-4">
+                    <a href="https://priceboard.vcbs.com.vn/" target="_blank" class="text-blue-600 hover:underline">
+                        <i class="fas fa-external-link-alt mr-1"></i>Mở VCBS Priceboard trong tab mới
+                    </a>
+                </div>
+                
+                <iframe 
+                    src="https://priceboard.vcbs.com.vn/" 
+                    class="vcbs-iframe"
+                    title="VCBS Priceboard"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    loading="lazy">
+                </iframe>
+                
+                <div class="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Nếu iframe không hiển thị, vui lòng <a href="https://priceboard.vcbs.com.vn/" target="_blank" class="font-semibold underline">click vào đây</a> để mở trực tiếp.
+                    </p>
+                </div>
+            </div>
+        </div>
 
-            <!-- Backtesting Section -->
-<div id="backtestSection" class="hidden fade-in space-y-6 mt-8">
-    <div class="bg-white rounded-2xl shadow-xl p-8">
-        <h2 class="text-2xl font-bold mb-6 flex items-center">
-            <i class="fas fa-history mr-3 text-indigo-600"></i>Backtesting Chiến lược
-        </h2>
-        
-        <div class="grid md:grid-cols-4 gap-4 mb-6">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Mã CK</label>
-                <input type="text" id="btSymbol" placeholder="VCB" class="w-full border-2 rounded-lg px-4 py-2 uppercase">
+        <!-- ===== TAB: BACKTEST ===== -->
+        <div id="main-backtest" class="hidden fade-in space-y-6">
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-history mr-3 text-indigo-600"></i>Backtesting Chiến lược
+                </h2>
+                
+                <div class="grid md:grid-cols-4 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mã CK</label>
+                        <input type="text" id="btSymbol" placeholder="VCB" class="w-full border-2 rounded-lg px-4 py-2 uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chiến lược</label>
+                        <select id="btStrategy" class="w-full border-2 rounded-lg px-4 py-2">
+                            <option value="sma_crossover">SMA Crossover (20/50)</option>
+                            <option value="rsi">RSI Overbought/Oversold</option>
+                            <option value="macd">MACD Signal</option>
+                            <option value="bollinger">Bollinger Bounce</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Vốn ban đầu (VND)</label>
+                        <input type="number" id="btCapital" value="100000000" class="w-full border-2 rounded-lg px-4 py-2">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="runBacktest()" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
+                            <i class="fas fa-play mr-2"></i>Chạy Backtest
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="btResults" class="hidden">
+                    <div class="grid md:grid-cols-5 gap-4 mb-6" id="btMetrics"></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm" id="btTradesTable">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2">#</th>
+                                    <th class="px-4 py-2">Ngày vào</th>
+                                    <th class="px-4 py-2">Giá vào</th>
+                                    <th class="px-4 py-2">Ngày ra</th>
+                                    <th class="px-4 py-2">Giá ra</th>
+                                    <th class="px-4 py-2">Lãi/Lỗ</th>
+                                    <th class="px-4 py-2">%</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Chiến lược</label>
-                <select id="btStrategy" class="w-full border-2 rounded-lg px-4 py-2">
-                    <option value="sma_crossover">SMA Crossover (20/50)</option>
-                    <option value="rsi">RSI Overbought/Oversold</option>
-                    <option value="macd">MACD Signal</option>
-                    <option value="bollinger">Bollinger Bounce</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Vốn ban đầu (VND)</label>
-                <input type="number" id="btCapital" value="100000000" class="w-full border-2 rounded-lg px-4 py-2">
-            </div>
-            <div class="flex items-end">
-                <button onclick="runBacktest()" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
-                    <i class="fas fa-play mr-2"></i>Chạy Backtest
+            
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <h3 class="text-xl font-bold mb-4">So sánh chiến lược</h3>
+                <button onclick="compareStrategies()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 mb-4">
+                    <i class="fas fa-balance-scale mr-2"></i>So sánh tất cả
                 </button>
+                <div id="comparisonResults" class="overflow-x-auto"></div>
             </div>
         </div>
-        
-        <!-- Results -->
-        <div id="btResults" class="hidden">
-            <div class="grid md:grid-cols-5 gap-4 mb-6" id="btMetrics"></div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm" id="btTradesTable">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-2">#</th>
-                            <th class="px-4 py-2">Ngày vào</th>
-                            <th class="px-4 py-2">Giá vào</th>
-                            <th class="px-4 py-2">Ngày ra</th>
-                            <th class="px-4 py-2">Giá ra</th>
-                            <th class="px-4 py-2">Lãi/Lỗ</th>
-                            <th class="px-4 py-2">%</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Strategy Comparison -->
-    <div class="bg-white rounded-2xl shadow-xl p-8">
-        <h3 class="text-xl font-bold mb-4">So sánh chiến lược</h3>
-        <button onclick="compareStrategies()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 mb-4">
-            <i class="fas fa-balance-scale mr-2"></i>So sánh tất cả
-        </button>
-        <div id="comparisonResults" class="overflow-x-auto"></div>
-    </div>
-</div>
 
-<!-- Alerts Management -->
-<div id="alertsSection" class="hidden fade-in space-y-6 mt-8">
-    <div class="bg-white rounded-2xl shadow-xl p-8">
-        <h2 class="text-2xl font-bold mb-6 flex items-center">
-            <i class="fas fa-bell mr-3 text-red-600"></i>Quản lý Cảnh báo
-        </h2>
-        
-        <div class="grid md:grid-cols-3 gap-4 mb-6">
-            <input type="text" id="alertSymbol" placeholder="Mã CK" class="border-2 rounded-lg px-4 py-2 uppercase">
-            <input type="number" id="alertTarget" placeholder="Giá mục tiêu" class="border-2 rounded-lg px-4 py-2">
-            <button onclick="createAlert()" class="bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
-                <i class="fas fa-plus mr-2"></i>Tạo cảnh báo
-            </button>
-        </div>
-        
-        <div id="alertsList" class="space-y-2"></div>
-    </div>
-</div>
-
-
-
-
-
-            <!-- DeepSeek Recommendation -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold mb-4 flex items-center">
-                    <i class="fas fa-brain mr-2 text-red-600"></i>Khuyến nghị đầu tư (DeepSeek-R1)
-                </h3>
-                <div id="deepseekRec" class="prose max-w-none">
-                    <!-- Dynamic content -->
+        <!-- ===== TAB: ALERTS ===== -->
+        <div id="main-alerts" class="hidden fade-in">
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-bell mr-3 text-red-600"></i>Quản lý Cảnh báo
+                </h2>
+                
+                <div class="grid md:grid-cols-3 gap-4 mb-6">
+                    <input type="text" id="alertSymbol" placeholder="Mã CK" class="border-2 rounded-lg px-4 py-2 uppercase">
+                    <input type="number" id="alertTarget" placeholder="Giá mục tiêu" class="border-2 rounded-lg px-4 py-2">
+                    <button onclick="createAlert()" class="bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+                        <i class="fas fa-plus mr-2"></i>Tạo cảnh báo
+                    </button>
                 </div>
-            </div>
-
-            <!-- News -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold mb-4 flex items-center">
-                    <i class="fas fa-newspaper mr-2 text-yellow-600"></i>Tin tức thị trường
-                </h3>
-                <div id="newsSection" class="space-y-3">
-                    <!-- Dynamic content -->
-                </div>
+                
+                <div id="alertsList" class="space-y-2"></div>
             </div>
         </div>
+
     </div>
 
     <script>
-        // Market overview
+        // ===== TAB SWITCHING =====
+        function switchMainTab(tabName) {
+            // Hide all tabs
+            ['analysis', 'vcbs', 'backtest', 'alerts'].forEach(t => {
+                document.getElementById('main-' + t).classList.add('hidden');
+                const btn = document.getElementById('tab-' + t);
+                btn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                btn.classList.add('text-gray-500');
+            });
+            
+            // Show selected tab
+            document.getElementById('main-' + tabName).classList.remove('hidden');
+            const activeBtn = document.getElementById('tab-' + tabName);
+            activeBtn.classList.remove('text-gray-500');
+            activeBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+        }
+
+        // ===== MARKET OVERVIEW =====
         async function loadMarketOverview() {
             try {
                 const res = await fetch('/api/market-overview');
@@ -316,6 +375,7 @@
             });
         }
 
+        // ===== ANALYZE STOCK =====
         async function analyzeStock() {
             const symbol = document.getElementById('stockInput').value.trim();
             if (!symbol) return alert('Vui lòng nhập mã chứng khoán');
@@ -344,6 +404,7 @@
             }
         }
 
+        // ===== ANALYZE FOREX =====
         async function analyzeForex() {
             const pair = document.getElementById('forexInput').value.trim();
             if (!pair) return alert('Vui lòng nhập cặp tiền tệ');
@@ -369,12 +430,11 @@
             }
         }
 
+        // ===== DISPLAY RESULTS =====
         function displayResults(data) {
             document.getElementById('resultsSection').classList.remove('hidden');
             
-            // Banner
             const rec = data.recommendation || {};
-            const banner = document.getElementById('recBanner');
             const action = rec.recommendation || 'THEO DÕI';
             
             const colors = {
@@ -384,18 +444,17 @@
                 'THEO DÕI': 'bg-blue-600'
             };
             
+            const banner = document.getElementById('recBanner');
             banner.className = `rounded-2xl p-6 text-white shadow-lg ${colors[action] || 'bg-gray-600'}`;
             document.getElementById('recSymbol').textContent = data.symbol;
             document.getElementById('recPrice').textContent = `Giá: ${data.current_price?.toLocaleString('vi-VN')} ${data.currency}`;
             document.getElementById('recAction').textContent = action;
             document.getElementById('recConfidence').textContent = `Độ tin cậy: ${rec.confidence || 'N/A'}`;
             
-            // Chart
             if (data.technical?.chart_url) {
                 document.getElementById('chartFrame').src = data.technical.chart_url;
             }
             
-            // Technical signals
             const signals = data.technical?.signals || {};
             const techHtml = (signals.details || []).map(d => 
                 `<div class="flex items-start p-3 bg-gray-50 rounded-lg">
@@ -406,7 +465,6 @@
             document.getElementById('techSignals').innerHTML = techHtml || '<p class="text-gray-500">Không có tín hiệu</p>';
             document.getElementById('techScore').textContent = signals.score || '--';
             
-            // Fundamental
             const fund = data.fundamental || {};
             const fundHtml = [
                 {title: 'Sức khỏe tài chính', score: fund.financial_health?.score, color: 'blue'},
@@ -424,7 +482,6 @@
             `).join('');
             document.getElementById('fundamentalAnalysis').innerHTML = fundHtml;
             
-            // DeepSeek
             const dsHtml = `
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>
@@ -462,7 +519,6 @@
             `;
             document.getElementById('deepseekRec').innerHTML = dsHtml;
             
-            // News
             const newsHtml = (data.news || []).map(n => `
                 <a href="${n.href || '#'}" target="_blank" class="block p-4 border rounded-xl hover:bg-gray-50 transition">
                     <h4 class="font-semibold text-gray-800 mb-1">${n.title || 'Không có tiêu đề'}</h4>
@@ -473,7 +529,6 @@
         }
 
         function displayForexResults(data) {
-            // Tương tự displayResults nhưng cho forex
             document.getElementById('resultsSection').classList.remove('hidden');
             document.getElementById('recSymbol').textContent = data.pair;
             document.getElementById('recPrice').textContent = `Tỷ giá: ${data.current_rate}`;
@@ -494,174 +549,156 @@
             analyzeForex();
         }
 
+        // ===== BACKTEST =====
+        async function runBacktest() {
+            const symbol = document.getElementById('btSymbol').value;
+            const strategy = document.getElementById('btStrategy').value;
+            const capital = document.getElementById('btCapital').value;
+            
+            if (!symbol) return alert('Nhập mã CK');
+            
+            const btn = event.target;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang chạy...';
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch('/api/backtest', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({symbol, strategy, initial_capital: parseInt(capital)})
+                });
+                const data = await res.json();
+                
+                if (data.error) throw new Error(data.error);
+                
+                const m = data.metrics;
+                document.getElementById('btMetrics').innerHTML = `
+                    <div class="bg-green-50 p-4 rounded-xl text-center">
+                        <p class="text-sm text-gray-600">Tổng lợi nhuận</p>
+                        <p class="text-2xl font-bold ${m.total_return_pct >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${m.total_return_pct >= 0 ? '+' : ''}${m.total_return_pct}%
+                        </p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-xl text-center">
+                        <p class="text-sm text-gray-600">Tỷ lệ thắng</p>
+                        <p class="text-2xl font-bold text-blue-600">${m.win_rate_pct}%</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-xl text-center">
+                        <p class="text-sm text-gray-600">Sharpe Ratio</p>
+                        <p class="text-2xl font-bold text-purple-600">${m.sharpe_ratio}</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-xl text-center">
+                        <p class="text-sm text-gray-600">Max Drawdown</p>
+                        <p class="text-2xl font-bold text-red-600">${m.max_drawdown_pct}%</p>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-xl text-center">
+                        <p class="text-sm text-gray-600">Số giao dịch</p>
+                        <p class="text-2xl font-bold text-yellow-600">${m.total_trades}</p>
+                    </div>
+                `;
+                
+                const tbody = document.querySelector('#btTradesTable tbody');
+                tbody.innerHTML = data.trades.map((t, i) => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-2">${i+1}</td>
+                        <td class="px-4 py-2">${new Date(t.entry_date).toLocaleDateString('vi-VN')}</td>
+                        <td class="px-4 py-2">${t.entry_price.toLocaleString()}</td>
+                        <td class="px-4 py-2">${new Date(t.exit_date).toLocaleDateString('vi-VN')}</td>
+                        <td class="px-4 py-2">${t.exit_price.toLocaleString()}</td>
+                        <td class="px-4 py-2 ${t.pnl >= 0 ? 'text-green-600' : 'text-red-600'} font-semibold">
+                            ${t.pnl >= 0 ? '+' : ''}${t.pnl.toLocaleString()}
+                        </td>
+                        <td class="px-4 py-2 ${t.pnl_pct >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_pct.toFixed(2)}%
+                        </td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('btResults').classList.remove('hidden');
+                
+            } catch (e) {
+                alert('Lỗi: ' + e.message);
+            } finally {
+                btn.innerHTML = '<i class="fas fa-play mr-2"></i>Chạy Backtest';
+                btn.disabled = false;
+            }
+        }
 
+        async function compareStrategies() {
+            const symbol = document.getElementById('btSymbol').value || 'VCB';
+            const res = await fetch('/api/backtest/compare', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({symbol})
+            });
+            const data = await res.json();
+            
+            let html = '<table class="w-full"><thead><tr class="bg-gray-50">';
+            ['Chiến lược', 'Lợi nhuận', 'Win Rate', 'Max DD', 'Sharpe', 'Giao dịch'].forEach(h => {
+                html += `<th class="px-4 py-2 text-left">${h}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            data.comparison.forEach(c => {
+                html += `<tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3 font-semibold">${c.strategy}</td>
+                    <td class="px-4 py-3 ${c.total_return_pct >= 0 ? 'text-green-600' : 'text-red-600'} font-bold">
+                        ${c.total_return_pct >= 0 ? '+' : ''}${c.total_return_pct}%
+                    </td>
+                    <td class="px-4 py-3">${c.win_rate_pct}%</td>
+                    <td class="px-4 py-3 text-red-600">${c.max_drawdown_pct}%</td>
+                    <td class="px-4 py-3">${c.sharpe_ratio}</td>
+                    <td class="px-4 py-3">${c.total_trades}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            
+            document.getElementById('comparisonResults').innerHTML = html;
+        }
 
-        // Backtest functions
-async function runBacktest() {
-    const symbol = document.getElementById('btSymbol').value;
-    const strategy = document.getElementById('btStrategy').value;
-    const capital = document.getElementById('btCapital').value;
-    
-    if (!symbol) return alert('Nhập mã CK');
-    
-    const btn = event.target;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang chạy...';
-    btn.disabled = true;
-    
-    try {
-        const res = await fetch('/api/backtest', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({symbol, strategy, initial_capital: parseInt(capital)})
-        });
-        const data = await res.json();
-        
-        if (data.error) throw new Error(data.error);
-        
-        // Display metrics
-        const m = data.metrics;
-        document.getElementById('btMetrics').innerHTML = `
-            <div class="bg-green-50 p-4 rounded-xl text-center">
-                <p class="text-sm text-gray-600">Tổng lợi nhuận</p>
-                <p class="text-2xl font-bold ${m.total_return_pct >= 0 ? 'text-green-600' : 'text-red-600'}">
-                    ${m.total_return_pct >= 0 ? '+' : ''}${m.total_return_pct}%
-                </p>
-            </div>
-            <div class="bg-blue-50 p-4 rounded-xl text-center">
-                <p class="text-sm text-gray-600">Tỷ lệ thắng</p>
-                <p class="text-2xl font-bold text-blue-600">${m.win_rate_pct}%</p>
-            </div>
-            <div class="bg-purple-50 p-4 rounded-xl text-center">
-                <p class="text-sm text-gray-600">Sharpe Ratio</p>
-                <p class="text-2xl font-bold text-purple-600">${m.sharpe_ratio}</p>
-            </div>
-            <div class="bg-red-50 p-4 rounded-xl text-center">
-                <p class="text-sm text-gray-600">Max Drawdown</p>
-                <p class="text-2xl font-bold text-red-600">${m.max_drawdown_pct}%</p>
-            </div>
-            <div class="bg-yellow-50 p-4 rounded-xl text-center">
-                <p class="text-sm text-gray-600">Số giao dịch</p>
-                <p class="text-2xl font-bold text-yellow-600">${m.total_trades}</p>
-            </div>
-        `;
-        
-        // Display trades
-        const tbody = document.querySelector('#btTradesTable tbody');
-        tbody.innerHTML = data.trades.map((t, i) => `
-            <tr class="border-b hover:bg-gray-50">
-                <td class="px-4 py-2">${i+1}</td>
-                <td class="px-4 py-2">${new Date(t.entry_date).toLocaleDateString('vi-VN')}</td>
-                <td class="px-4 py-2">${t.entry_price.toLocaleString()}</td>
-                <td class="px-4 py-2">${new Date(t.exit_date).toLocaleDateString('vi-VN')}</td>
-                <td class="px-4 py-2">${t.exit_price.toLocaleString()}</td>
-                <td class="px-4 py-2 ${t.pnl >= 0 ? 'text-green-600' : 'text-red-600'} font-semibold">
-                    ${t.pnl >= 0 ? '+' : ''}${t.pnl.toLocaleString()}
-                </td>
-                <td class="px-4 py-2 ${t.pnl_pct >= 0 ? 'text-green-600' : 'text-red-600'}">
-                    ${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_pct.toFixed(2)}%
-                </td>
-            </tr>
-        `).join('');
-        
-        document.getElementById('btResults').classList.remove('hidden');
-        
-    } catch (e) {
-        alert('Lỗi: ' + e.message);
-    } finally {
-        btn.innerHTML = '<i class="fas fa-play mr-2"></i>Chạy Backtest';
-        btn.disabled = false;
-    }
-}
+        // ===== ALERTS =====
+        async function createAlert() {
+            const symbol = document.getElementById('alertSymbol').value;
+            const target = document.getElementById('alertTarget').value;
+            
+            if (!symbol || !target) return alert('Nhập đầy đủ thông tin');
+            
+            const res = await fetch('/api/alerts', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({symbol, target_price: target, chat_id: 1})
+            });
+            const data = await res.json();
+            alert(data.message);
+            loadAlerts();
+        }
 
-async function compareStrategies() {
-    const symbol = document.getElementById('btSymbol').value || 'VCB';
-    const res = await fetch('/api/backtest/compare', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({symbol})
-    });
-    const data = await res.json();
-    
-    let html = '<table class="w-full"><thead><tr class="bg-gray-50">';
-    ['Chiến lược', 'Lợi nhuận', 'Win Rate', 'Max DD', 'Sharpe', 'Giao dịch'].forEach(h => {
-        html += `<th class="px-4 py-2 text-left">${h}</th>`;
-    });
-    html += '</tr></thead><tbody>';
-    
-    data.comparison.forEach(c => {
-        html += `<tr class="border-b hover:bg-gray-50">
-            <td class="px-4 py-3 font-semibold">${c.strategy}</td>
-            <td class="px-4 py-3 ${c.total_return_pct >= 0 ? 'text-green-600' : 'text-red-600'} font-bold">
-                ${c.total_return_pct >= 0 ? '+' : ''}${c.total_return_pct}%
-            </td>
-            <td class="px-4 py-3">${c.win_rate_pct}%</td>
-            <td class="px-4 py-3 text-red-600">${c.max_drawdown_pct}%</td>
-            <td class="px-4 py-3">${c.sharpe_ratio}</td>
-            <td class="px-4 py-3">${c.total_trades}</td>
-        </tr>`;
-    });
-    html += '</tbody></table>';
-    
-    document.getElementById('comparisonResults').innerHTML = html;
-}
+        async function loadAlerts() {
+            const res = await fetch('/api/alerts/1');
+            const data = await res.json();
+            
+            document.getElementById('alertsList').innerHTML = data.alerts.map(a => `
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                        <span class="font-bold text-lg">${a.symbol}</span>
+                        <span class="ml-4 text-gray-600">Mục tiêu: ${a.target.toLocaleString()}</span>
+                        <span class="ml-2 px-2 py-1 rounded text-xs ${a.triggered ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}">
+                            ${a.triggered ? 'Đã kích hoạt' : 'Đang theo dõi'}
+                        </span>
+                    </div>
+                    <button onclick="deleteAlert('${a.id}')" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('') || '<p class="text-gray-500 text-center py-4">Chưa có cảnh báo nào</p>';
+        }
 
-// Alert functions
-async function createAlert() {
-    const symbol = document.getElementById('alertSymbol').value;
-    const target = document.getElementById('alertTarget').value;
-    
-    if (!symbol || !target) return alert('Nhập đầy đủ thông tin');
-    
-    // Giả lập chat_id = 1 cho demo
-    const res = await fetch('/api/alerts', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({symbol, target_price: target, chat_id: 1})
-    });
-    const data = await res.json();
-    alert(data.message);
-    loadAlerts();
-}
+        async function deleteAlert(id) {
+            await fetch(`/api/alerts/${id}`, {method: 'DELETE'});
+            loadAlerts();
+        }
 
-async function loadAlerts() {
-    const res = await fetch('/api/alerts/1');
-    const data = await res.json();
-    
-    document.getElementById('alertsList').innerHTML = data.alerts.map(a => `
-        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-                <span class="font-bold text-lg">${a.symbol}</span>
-                <span class="ml-4 text-gray-600">Mục tiêu: ${a.target.toLocaleString()}</span>
-                <span class="ml-2 px-2 py-1 rounded text-xs ${a.triggered ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}">
-                    ${a.triggered ? 'Đã kích hoạt' : 'Đang theo dõi'}
-                </span>
-            </div>
-            <button onclick="deleteAlert('${a.id}')" class="text-red-500 hover:text-red-700">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-    `).join('') || '<p class="text-gray-500 text-center py-4">Chưa có cảnh báo nào</p>';
-}
-
-async function deleteAlert(id) {
-    await fetch(`/api/alerts/${id}`, {method: 'DELETE'});
-    loadAlerts();
-}
-
-// Tab switching
-function showTab(tab) {
-    ['resultsSection', 'backtestSection', 'alertsSection'].forEach(t => {
-        document.getElementById(t).classList.add('hidden');
-    });
-    if (tab === 'backtest') {
-        document.getElementById('backtestSection').classList.remove('hidden');
-    } else if (tab === 'alerts') {
-        document.getElementById('alertsSection').classList.remove('hidden');
-        loadAlerts();
-    }
-}
-
-        // Enter key support
+        // ===== EVENT LISTENERS =====
         document.getElementById('stockInput').addEventListener('keypress', e => {
             if (e.key === 'Enter') analyzeStock();
         });
