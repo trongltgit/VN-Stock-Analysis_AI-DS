@@ -22,7 +22,7 @@ tech_analyzer = TechnicalAnalyzer()
 gemini = GeminiAnalyzer()
 deepseek = DeepSeekAnalyst()
 
-# Cleanup temp files periodically
+# Cleanup temp files
 def cleanup_temp_files():
     while True:
         time.sleep(3600)
@@ -46,24 +46,22 @@ def index():
 @app.route('/api/analyze', methods=['POST'])
 def analyze_stock():
     """API phân tích chứng khoán/quỹ"""
-    data = request.get_json()
+    data = request.get_json() or {}
     symbol = data.get('symbol', '').strip().upper()
-    analysis_type = data.get('type', 'stock')
     
     if not symbol:
         return jsonify({'error': 'Vui lòng nhập mã chứng khoán'}), 400
     
+    print(f"Analyzing: {symbol}")
+    
     try:
-        if analysis_type == 'fund':
-            stock_data = collector.get_fund_data(symbol)
-        else:
-            stock_data = collector.get_stock_data(symbol)
+        stock_data = collector.get_stock_data(symbol)
         
         if not stock_data['success']:
-            return jsonify({'error': f'Không tìm thấy mã {symbol}: {stock_data.get("error")}'}), 404
+            return jsonify({'error': f'Không tìm thấy mã {symbol}'}), 404
         
         df = stock_data['data']
-        current_price = df['Close'].iloc[-1]
+        current_price = float(df['Close'].iloc[-1])
         
         chart_path, df_with_indicators = tech_analyzer.create_chart(df, symbol)
         tech_signals = tech_analyzer.generate_signals(df_with_indicators)
@@ -71,7 +69,7 @@ def analyze_stock():
         fundamentals = collector.get_fundamental_data(symbol)
         gemini_analysis = gemini.analyze_fundamentals(fundamentals)
         
-        news = collector.search_market_news(f"{symbol} stock", max_results=5)
+        news = collector.search_market_news(f"{symbol} chứng khoán", max_results=5)
         
         recommendation = deepseek.generate_investment_recommendation(
             symbol=symbol,
@@ -81,28 +79,26 @@ def analyze_stock():
             current_price=current_price
         )
         
-        result = {
+        return jsonify({
             'symbol': symbol,
             'current_price': round(current_price, 2),
-            'currency': stock_data['info'].get('currency', 'VND'),
+            'currency': 'VND',
             'source': stock_data.get('source', 'unknown'),
             'timestamp': datetime.now().isoformat(),
             'technical': {
                 'chart_url': f'/charts/{os.path.basename(chart_path)}',
                 'signals': tech_signals,
                 'indicators': {
-                    'rsi': round(df_with_indicators['RSI'].iloc[-1], 2),
-                    'sma20': round(df_with_indicators['SMA20'].iloc[-1], 2),
-                    'sma50': round(df_with_indicators['SMA50'].iloc[-1], 2),
-                    'macd': round(df_with_indicators['MACD'].iloc[-1], 4),
+                    'rsi': round(float(df_with_indicators['RSI'].iloc[-1]), 2),
+                    'sma20': round(float(df_with_indicators['SMA20'].iloc[-1]), 2),
+                    'sma50': round(float(df_with_indicators['SMA50'].iloc[-1]), 2),
+                    'macd': round(float(df_with_indicators['MACD'].iloc[-1]), 4),
                 }
             },
             'fundamental': gemini_analysis,
             'recommendation': recommendation,
             'news': news[:3]
-        }
-        
-        return jsonify(result)
+        })
         
     except Exception as e:
         import traceback
@@ -112,11 +108,13 @@ def analyze_stock():
 @app.route('/api/forex', methods=['POST'])
 def analyze_forex():
     """API phân tích tỷ giá"""
-    data = request.get_json()
+    data = request.get_json() or {}
     pair = data.get('pair', '').strip().upper()
     
     if not pair:
         return jsonify({'error': 'Vui lòng nhập cặp tiền tệ (VD: USD.VND)'}), 400
+    
+    print(f"Analyzing forex: {pair}")
     
     try:
         forex_data = collector.get_forex_data(pair)
@@ -125,22 +123,19 @@ def analyze_forex():
             return jsonify({'error': f'Không tìm thấy cặp {pair}'}), 404
         
         df = forex_data['data']
-        current_rate = df['Close'].iloc[-1]
+        current_rate = float(df['Close'].iloc[-1])
         
         chart_path, df_indicators = tech_analyzer.create_forex_chart(df, pair)
         signals = tech_analyzer.generate_signals(df_indicators)
         
-        news = collector.search_market_news(
-            f"{pair.split('.')[0]} {pair.split('.')[1]} exchange rate", 
-            max_results=5
-        )
+        news = collector.search_market_news(f"tỷ giá {pair}", max_results=3)
         
         forex_analysis = deepseek.analyze_forex(
             pair=pair,
             technical_data={
                 'current_rate': current_rate,
-                'sma20': df_indicators['SMA20'].iloc[-1],
-                'rsi': df_indicators['RSI'].iloc[-1],
+                'sma20': float(df_indicators['SMA20'].iloc[-1]),
+                'rsi': float(df_indicators['RSI'].iloc[-1]),
                 'trend': signals['trend']
             },
             macro_news=news
@@ -161,60 +156,22 @@ def analyze_forex():
         print(f"ERROR in analyze_forex: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/vcbs/<symbol>')
-def get_vcbs_price(symbol):
-    """API lấy giá trực tiếp từ VCBS Priceboard"""
-    try:
-        data = collector.get_vcbs_data(symbol.upper())
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/ssi/<symbol>')
-def get_ssi_price(symbol):
-    """API lấy giá trực tiếp từ SSI"""
-    try:
-        data = collector.get_ssi_data(symbol.upper())
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/vndirect/<symbol>')
-def get_vndirect_price(symbol):
-    """API lấy giá trực tiếp từ VNDIRECT"""
-    try:
-        data = collector.get_vndirect_data(symbol.upper())
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/charts/<path:filename>')
 def serve_chart(filename):
     """Phục vụ file biểu đồ tạm"""
-    return send_file(os.path.join(Config.TEMP_DIR, filename))
+    try:
+        return send_file(os.path.join(Config.TEMP_DIR, filename))
+    except Exception as e:
+        return jsonify({'error': f'File not found: {filename}'}), 404
 
 @app.route('/api/market-overview', methods=['GET'])
 def market_overview():
     """Tổng quan thị trường VN"""
-    result = collector.get_market_overview_vn()
-    
-    if not result:
-        indices = ['^VNINDEX', '^HNXINDEX', '^UPCOMINDEX']
-        for idx in indices:
-            try:
-                data = collector.get_stock_data(idx, period="5d", interval="1d")
-                if data['success']:
-                    df = data['data']
-                    result[idx] = {
-                        'current': round(df['Close'].iloc[-1], 2),
-                        'change': 0,
-                        'change_pct': 0,
-                        'volume': 0
-                    }
-            except:
-                continue
-    
-    return jsonify(result)
+    try:
+        result = collector.get_market_overview_vn()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ========== ALERT SYSTEM ==========
 from agents.alert_system import PriceAlertSystem
@@ -224,12 +181,10 @@ alert_system.start()
 
 @app.route('/api/alerts', methods=['POST'])
 def create_alert():
-    """Tạo cảnh báo giá mới"""
-    data = request.get_json()
+    data = request.get_json() or {}
     symbol = data.get('symbol', '').upper()
     target = data.get('target_price', 0)
     chat_id = data.get('chat_id', 0)
-    condition = data.get('condition', 'above')
     
     if not all([symbol, target, chat_id]):
         return jsonify({'error': 'Thiếu thông tin'}), 400
@@ -239,9 +194,8 @@ def create_alert():
     
     alert_id = alert_system.add_alert(
         symbol=symbol,
-        chat_id=chat_id,
+        chat_id=int(chat_id),
         target_price=float(target),
-        condition=condition,
         callback=alert_callback
     )
     
@@ -253,7 +207,6 @@ def create_alert():
 
 @app.route('/api/alerts/<chat_id>', methods=['GET'])
 def get_alerts(chat_id):
-    """Lấy danh sách cảnh báo của user"""
     alerts = alert_system.get_user_alerts(int(chat_id))
     return jsonify({
         'alerts': [{
@@ -268,14 +221,8 @@ def get_alerts(chat_id):
 
 @app.route('/api/alerts/<alert_id>', methods=['DELETE'])
 def delete_alert(alert_id):
-    """Xóa cảnh báo"""
     alert_system.remove_alert(alert_id)
     return jsonify({'success': True})
-
-@app.route('/api/alerts/stats', methods=['GET'])
-def alert_stats():
-    """Thống kê hệ thống cảnh báo"""
-    return jsonify(alert_system.get_stats())
 
 # ========== BACKTEST ==========
 from agents.backtest_engine import BacktestEngine, sma_crossover_strategy, rsi_strategy, macd_strategy, bollinger_bounce_strategy
@@ -283,8 +230,7 @@ import pandas as pd
 
 @app.route('/api/backtest', methods=['POST'])
 def run_backtest():
-    """Chạy backtest chiến lược"""
-    data = request.get_json()
+    data = request.get_json() or {}
     symbol = data.get('symbol', '').upper()
     strategy_name = data.get('strategy', 'sma_crossover')
     initial_capital = data.get('initial_capital', 100_000_000)
@@ -341,8 +287,7 @@ def run_backtest():
 
 @app.route('/api/backtest/compare', methods=['POST'])
 def compare_strategies():
-    """So sánh nhiều chiến lược cùng lúc"""
-    data = request.get_json()
+    data = request.get_json() or {}
     symbol = data.get('symbol', '').upper()
     
     stock_data = collector.get_stock_data(symbol, period="3y")
@@ -379,6 +324,16 @@ def compare_strategies():
         'symbol': symbol,
         'comparison': comparison,
         'best_strategy': comparison[0]['strategy'] if comparison else None
+    })
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.now().isoformat(),
+        'groq_key_set': bool(Config.GROQ_API_KEY),
+        'gemini_key_set': bool(Config.GEMINI_API_KEY)
     })
 
 if __name__ == '__main__':
