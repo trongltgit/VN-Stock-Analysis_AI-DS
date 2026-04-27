@@ -6,8 +6,15 @@ class DeepSeekAnalyst:
     """Tầng định giá & khuyến nghị: Suy luận logic, tính toán"""
     
     def __init__(self):
-        self.client = Groq(api_key=Config.GROQ_API_KEY)
+        # Lazy init để tránh lỗi boot nếu API key thiếu
+        self._client = None
         self.model = Config.GROQ_MODEL
+    
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = Groq(api_key=Config.GROQ_API_KEY)
+        return self._client
     
     def generate_investment_recommendation(self, 
                                        symbol: str,
