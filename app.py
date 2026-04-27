@@ -22,7 +22,7 @@ tech_analyzer = TechnicalAnalyzer()
 gemini = GeminiAnalyzer()
 deepseek = DeepSeekAnalyst()
 
-# Cleanup temp files periodically
+# Cleanup temp files
 def cleanup_temp_files():
     while True:
         time.sleep(3600)
@@ -65,14 +65,18 @@ def analyze_stock():
         df = stock_data['data']
         current_price = df['Close'].iloc[-1]
         
+        # Phân tích kỹ thuật
         chart_path, df_with_indicators = tech_analyzer.create_chart(df, symbol)
         tech_signals = tech_analyzer.generate_signals(df_with_indicators)
         
+        # Phân tích cơ bản
         fundamentals = collector.get_fundamental_data(symbol)
         gemini_analysis = gemini.analyze_fundamentals(fundamentals)
         
+        # Tin tức
         news = collector.search_market_news(f"{symbol} stock", max_results=5)
         
+        # DeepSeek khuyến nghị
         recommendation = deepseek.generate_investment_recommendation(
             symbol=symbol,
             fundamental_analysis=gemini_analysis,
@@ -85,6 +89,7 @@ def analyze_stock():
             'symbol': symbol,
             'current_price': round(current_price, 2),
             'currency': stock_data['info'].get('currency', 'VND'),
+            'source': stock_data.get('source', 'unknown'),
             'timestamp': datetime.now().isoformat(),
             'technical': {
                 'chart_url': f'/charts/{os.path.basename(chart_path)}',
@@ -148,6 +153,7 @@ def analyze_forex():
         return jsonify({
             'pair': pair,
             'current_rate': round(current_rate, 4),
+            'source': forex_data.get('source', 'unknown'),
             'chart_url': f'/charts/{os.path.basename(chart_path)}',
             'technical_signals': signals,
             'analysis': forex_analysis,
@@ -159,6 +165,33 @@ def analyze_forex():
         print(f"ERROR in analyze_forex: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/vcbs/<symbol>')
+def get_vcbs_price(symbol):
+    """API lấy giá trực tiếp từ VCBS Priceboard"""
+    try:
+        data = collector.get_vcbs_data(symbol.upper())
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ssi/<symbol>')
+def get_ssi_price(symbol):
+    """API lấy giá trực tiếp từ SSI"""
+    try:
+        data = collector.get_ssi_data(symbol.upper())
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/vndirect/<symbol>')
+def get_vndirect_price(symbol):
+    """API lấy giá trực tiếp từ VNDIRECT"""
+    try:
+        data = collector.get_vndirect_data(symbol.upper())
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/charts/<path:filename>')
 def serve_chart(filename):
     """Phục vụ file biểu đồ tạm"""
@@ -167,22 +200,25 @@ def serve_chart(filename):
 @app.route('/api/market-overview', methods=['GET'])
 def market_overview():
     """Tổng quan thị trường VN"""
-    indices = ['^VNINDEX', '^HNXINDEX', '^UPCOMINDEX']
-    result = {}
+    # Dùng nguồn VN thay vì Yahoo
+    result = collector.get_market_overview_vn()
     
-    for idx in indices:
-        try:
-            data = collector.get_stock_data(idx, period="5d", interval="1d")
-            if data['success']:
-                df = data['data']
-                result[idx] = {
-                    'current': round(df['Close'].iloc[-1], 2),
-                    'change': round(df['Close'].iloc[-1] - df['Close'].iloc[-2], 2),
-                    'change_pct': round((df['Close'].iloc[-1] / df['Close'].iloc[-2] - 1) * 100, 2),
-                    'volume': int(df['Volume'].iloc[-1])
-                }
-        except:
-            continue
+    if not result:
+        # Fallback
+        indices = ['^VNINDEX', '^HNXINDEX', '^UPCOMINDEX']
+        for idx in indices:
+            try:
+                data = collector.get_stock_data(idx, period="5d", interval="1d")
+                if data['success']:
+                    df = data['data']
+                    result[idx] = {
+                        'current': round(df['Close'].iloc[-1], 2),
+                        'change': 0,
+                        'change_pct': 0,
+                        'volume': 0
+                    }
+            except:
+                continue
     
     return jsonify(result)
 
@@ -194,7 +230,6 @@ alert_system.start()
 
 @app.route('/api/alerts', methods=['POST'])
 def create_alert():
-    """Tạo cảnh báo giá mới"""
     data = request.get_json()
     symbol = data.get('symbol', '').upper()
     target = data.get('target_price', 0)
@@ -205,7 +240,7 @@ def create_alert():
         return jsonify({'error': 'Thiếu thông tin'}), 400
     
     def alert_callback(**kwargs):
-        print(f"ALERT TRIGGERED: {kwargs['symbol']} at {kwargs['current_price']}")
+        print(f"ALERT: {kwargs['symbol']} at {kwargs['current_price']}")
     
     alert_id = alert_system.add_alert(
         symbol=symbol,
@@ -223,7 +258,6 @@ def create_alert():
 
 @app.route('/api/alerts/<chat_id>', methods=['GET'])
 def get_alerts(chat_id):
-    """Lấy danh sách cảnh báo của user"""
     alerts = alert_system.get_user_alerts(int(chat_id))
     return jsonify({
         'alerts': [{
@@ -238,14 +272,8 @@ def get_alerts(chat_id):
 
 @app.route('/api/alerts/<alert_id>', methods=['DELETE'])
 def delete_alert(alert_id):
-    """Xóa cảnh báo"""
     alert_system.remove_alert(alert_id)
     return jsonify({'success': True})
-
-@app.route('/api/alerts/stats', methods=['GET'])
-def alert_stats():
-    """Thống kê hệ thống cảnh báo"""
-    return jsonify(alert_system.get_stats())
 
 # ========== BACKTEST ==========
 from agents.backtest_engine import BacktestEngine, sma_crossover_strategy, rsi_strategy, macd_strategy, bollinger_bounce_strategy
@@ -253,7 +281,6 @@ import pandas as pd
 
 @app.route('/api/backtest', methods=['POST'])
 def run_backtest():
-    """Chạy backtest chiến lược"""
     data = request.get_json()
     symbol = data.get('symbol', '').upper()
     strategy_name = data.get('strategy', 'sma_crossover')
@@ -311,7 +338,6 @@ def run_backtest():
 
 @app.route('/api/backtest/compare', methods=['POST'])
 def compare_strategies():
-    """So sánh nhiều chiến lược"""
     data = request.get_json()
     symbol = data.get('symbol', '').upper()
     
@@ -350,38 +376,6 @@ def compare_strategies():
         'comparison': comparison,
         'best_strategy': comparison[0]['strategy'] if comparison else None
     })
-
-# ========== TELEGRAM BOT (OPTIONAL) ==========
-# Chỉ khởi động nếu có TELEGRAM_BOT_TOKEN trong env
-telegram_bot = None
-
-def init_telegram_bot():
-    """Khởi tạo Telegram bot - optional"""
-    global telegram_bot
-    token = os.getenv('TELEGRAM_BOT_TOKEN')
-    if not token:
-        print("ℹ️ Không có TELEGRAM_BOT_TOKEN - Bỏ qua Telegram Bot")
-        return
-    
-    try:
-        from agents.telegram_bot import StockTelegramBot
-        
-        def analyze_callback(symbol):
-            with app.test_client() as client:
-                resp = client.post('/api/analyze', json={'symbol': symbol})
-                return resp.get_json()
-        
-        telegram_bot = StockTelegramBot(token=token, analyzer_callback=analyze_callback)
-        # Chạy trong thread riêng
-        bot_thread = threading.Thread(target=telegram_bot.run, daemon=True)
-        bot_thread.start()
-        print("✅ Telegram Bot đã khởi động")
-    except Exception as e:
-        print(f"⚠️ Lỗi khởi động Telegram Bot: {e}")
-
-# Khởi động bot sau khi app ready (chỉ khi không phải reloader process)
-if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not os.environ.get('GUNICORN_WORKER'):
-    init_telegram_bot()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
